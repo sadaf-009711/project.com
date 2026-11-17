@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Net Manager ISP</title>
+<style>
+body{font-family:Arial,Tahoma,sans-serif;margin:0;background:#f3f6fb;color:#1c2b3a}
+header{background:#1F3A5F;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:18px}
+button{font-size:16px;border:0;border-radius:8px;padding:12px 16px;background:#2E75B6;color:#fff;cursor:pointer}
+button:disabled{opacity:.5}
+.lb{padding:8px 12px;font-size:14px}.lb.on{background:#fff;color:#1F3A5F;font-weight:bold}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #d5dde8}
+.tab{flex:1;background:#fff;color:#556;border-radius:0;font-size:14px}
+.tab.on{color:#1F3A5F;font-weight:bold;border-bottom:3px solid #2E75B6}
+.panel{display:none;padding:14px}
+.box,.out,.card{background:#fff;border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.out{white-space:pre-wrap;min-height:60px;line-height:1.6}
+.card{line-height:1.6}
+textarea,input{width:100%;box-sizing:border-box;padding:10px;font-size:16px;border:1px solid #c5d0de;border-radius:8px;margin-bottom:8px}
+.row{display:flex;gap:8px}.row button{flex:1}
+.mic{background:#6A1B9A}.done{background:#2E7D32;width:100%;margin-top:8px}.gray{background:#667}
+.chip{display:inline-block;background:#e6eefa;color:#1F3A5F;border-radius:16px;padding:7px 12px;margin:6px 4px 0 0;font-size:13px;cursor:pointer}
+small{color:#667}
+</style></head><body>
+<header><h1 data-i="title"></h1>
+<div><button class="lb" id="b_en" onclick="setLang('en')">EN</button> <button class="lb" id="b_ur" onclick="setLang('ur')">اردو</button></div></header>
+<div class="tabs">
+<button class="tab on" id="t_owner" onclick="show('owner')" data-i="owner"></button>
+<button class="tab" id="t_tech" onclick="show('tech')" data-i="tech"></button>
+<button class="tab" id="t_cust" onclick="show('cust')" data-i="cust"></button></div>
+
+<div class="panel" id="p_owner" style="display:block">
+<div class="box">
+<input id="pin" type="password" data-p="pin">
+<textarea id="otext" rows="3" dir="auto" data-p="oph"></textarea>
+<div class="row"><button class="mic" onclick="mic('otext','omic')" data-i="speak"></button><button onclick="ownerSend()" data-i="send"></button></div>
+<small id="omic"></small><div>
+<span class="chip" data-c="c1" data-i="c1"></span><span class="chip" data-c="c2" data-i="c2"></span><span class="chip" data-c="c3" data-i="c3"></span><span class="chip" data-c="c4" data-i="c4"></span><span class="chip" data-c="c5" data-i="c5"></span>
+</div></div><div class="out" id="oout"></div></div>
+
+<div class="panel" id="p_tech">
+<div class="box"><button class="gray" onclick="load()" data-i="refresh"></button> <small id="tmsg"></small></div>
+<div id="tlist"></div></div>
+
+<div class="panel" id="p_cust">
+<div class="box">
+<input id="cphone" type="tel" dir="auto" data-p="phone">
+<textarea id="ctext" rows="3" dir="auto" data-p="cph"></textarea>
+<div class="row"><button class="mic" onclick="mic('ctext','cmic')" data-i="speak"></button><button onclick="custSend()" data-i="send"></button></div>
+<small id="cmic"></small><div>
+<span class="chip" data-k="k1" data-i="k1"></span><span class="chip" data-k="k2" data-i="k2"></span>
+</div></div><div class="out" id="cout"></div></div>
+
+<script>
+const API='PASTE_YOUR_EXEC_URL_HERE'; // Apps Script > Deploy > Web app URL (ends with /exec)
+const I={
+en:{title:'Net Manager ISP',owner:'Owner',tech:'Technician',cust:'Customer',pin:'PIN',oph:'Type or tap Speak. e.g. Ali paid 1000',
+speak:'Speak',send:'Send',refresh:'Refresh',phone:'Your phone number',cph:'Describe your problem. e.g. My internet is slow',
+c1:'Ali paid 1000',c2:"What is Ali's balance?",c3:'Who has not paid?',c4:"Sara's internet is slow",c5:'Show open requests',
+k1:'What is the status of my request?',k2:'Show my bill',init:'The reply will appear here.',wait:'Please wait...',err:'Problem: ',
+need:'Please type or speak first.',needphone:'Enter your phone number first.',needpin:'Enter the PIN in the Owner tab first.',
+open:'Open requests: ',none:'No open requests.',done:'Done',issue:'Issue',pri:'Priority',heard:'Heard. Now tap Send.',
+listen:'Listening...',nomic:'No mic support here. Use your keyboard mic.',micfail:'Mic did not work. Use your keyboard mic.',deny:'Mic permission blocked. Allow it in browser settings.',ml:'en-US',
+Complaint:'Complaint',Technician:'Technician'},
+ur:{title:'نیٹ مینیجر آئی ایس پی',owner:'مالک',tech:'ٹیکنیشن',cust:'کسٹمر',pin:'پن',oph:'لکھیں یا بولیں۔ جیسے: علی نے 1000 دیے',
+speak:'بولیں',send:'بھیجیں',refresh:'ریفریش',phone:'اپنا فون نمبر',cph:'اپنا مسئلہ لکھیں۔ جیسے: میرا انٹرنیٹ سلو ہے',
+c1:'علی نے 1000 دیے',c2:'علی کا بیلنس بتاؤ',c3:'کس کس نے ادائیگی نہیں کی',c4:'سارہ کا انٹرنیٹ سلو ہے',c5:'کھلی درخواستیں بتاؤ',
+k1:'میری درخواست کا کیا بنا',k2:'میرا بل بتاؤ',init:'جواب یہاں نظر آئے گا۔',wait:'انتظار کریں...',err:'مسئلہ: ',
+need:'پہلے کچھ بولیں یا لکھیں۔',needphone:'پہلے فون نمبر لکھیں۔',needpin:'پہلے مالک والے ٹیب میں پن ڈالیں۔',
+open:'کھلی درخواستیں: ',none:'کوئی کھلی درخواست نہیں۔',done:'مکمل',issue:'مسئلہ',pri:'ترجیح',heard:'سن لیا۔ اب بھیجیں دبائیں۔',
+listen:'سن رہا ہوں...',nomic:'یہاں مائیک نہیں چلتا۔ کیبورڈ کا مائیک استعمال کریں۔',micfail:'مائیک نہیں چلا۔ کیبورڈ کا مائیک استعمال کریں۔',deny:'مائیک کی اجازت بند ہے۔ براؤزر سیٹنگ میں اجازت دیں۔',ml:'ur-PK',
+Complaint:'شکایت',Technician:'ٹیکنیشن'}};
+const $=id=>document.getElementById(id);
+let lang=localStorage.getItem('lang')||'en', pin=localStorage.getItem('pin')||'', busy=false, used={};
+const T=k=>I[lang][k];
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function setLang(l){
+  lang=l; localStorage.setItem('lang',l);
+  document.documentElement.dir=l==='ur'?'rtl':'ltr';
+  document.querySelectorAll('[data-i]').forEach(e=>e.textContent=T(e.dataset.i));
+  document.querySelectorAll('[data-p]').forEach(e=>e.placeholder=T(e.dataset.p));
+  $('b_en').className='lb'+(l==='en'?' on':''); $('b_ur').className='lb'+(l==='ur'?' on':'');
+  if(!used.oout) $('oout').textContent=T('init');
+  if(!used.cout) $('cout').textContent=T('init');
+}
+function show(t){
+  ['owner','tech','cust'].forEach(x=>{ $('p_'+x).style.display=x===t?'block':'none'; $('t_'+x).className='tab'+(x===t?' on':''); });
+  if(t==='tech') load();
+}
+async function api(a){
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({lang:lang,pin:pin},a))});
+  const j=await r.json(); if(!j.ok) throw new Error(j.error); return j.data;
+}
+async function send(out,body){
+  if(busy) return; busy=true; used[out]=true; $(out).textContent=T('wait');
+  try{ $(out).textContent=await api(body); }catch(e){ $(out).textContent=T('err')+e.message; }
+  busy=false;
+}
+function ownerSend(t){
+  pin=$('pin').value.trim(); localStorage.setItem('pin',pin);
+  t=t||$('otext').value.trim();
+  if(!t){ used.oout=true; $('oout').textContent=T('need'); return; }
+  $('otext').value=t; send('oout',{action:'owner',text:t});
+}
+function custSend(t){
+  const ph=$('cphone').value.trim(); t=t||$('ctext').value.trim();
+  used.cout=true;
+  if(!ph){ $('cout').textContent=T('needphone'); return; }
+  if(!t){ $('cout').textContent=T('need'); return; }
+  $('ctext').value=t; send('cout',{action:'cust',phone:ph,text:t});
+}
+async function load(){
+  if(busy) return;
+  if(!pin){ $('tmsg').textContent=T('needpin'); return; }
+  $('tmsg').textContent=T('wait');
+  try{
+    const list=await api({action:'list'});
+    $('tlist').innerHTML=list.length?list.map(r=>
+      '<div class="card"><b>'+esc(r.id)+'</b> - '+esc(T(r.type))+' / '+esc(r.cat)+'<br>'+esc(r.name)+' ('+esc(r.phone)+')<br>'+esc(r.address)+'<br>'
+      +(r.details?esc(T('issue'))+': '+esc(r.details)+'<br>':'')
+      +'<small>'+esc(r.date)+(r.pri?' | '+esc(T('pri'))+': '+esc(r.pri):'')+'</small>'
+      +'<button class="done" data-id="'+esc(r.id)+'">'+esc(T('done'))+'</button></div>').join(''):'<p>'+esc(T('none'))+'</p>';
+    $('tmsg').textContent=T('open')+list.length;
+  }catch(e){ $('tmsg').textContent=T('err')+e.message; }
+}
+$('tlist').onclick=async e=>{
+  const b=e.target.closest('button'); if(!b||busy) return;
+  busy=true; b.disabled=true;
+  try{ $('tmsg').textContent=await api({action:'done',id:b.dataset.id}); }catch(x){ $('tmsg').textContent=T('err')+x.message; }
+  busy=false; load();
+};
+document.querySelectorAll('[data-c]').forEach(e=>e.onclick=()=>ownerSend(T(e.dataset.c)));
+document.querySelectorAll('[data-k]').forEach(e=>e.onclick=()=>custSend(T(e.dataset.k)));
+
+let rec=null;
+function mic(target,status){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition, s=$(status);
+  if(!SR){ s.textContent=T('nomic'); return; }
+  try{ if(rec) rec.stop(); }catch(e){}
+  const r=rec=new SR(); r.lang=T('ml'); r.interimResults=false;
+  r.onstart=()=>s.textContent=T('listen');
+  r.onresult=e=>{ $(target).value=e.results[0][0].transcript; s.textContent=T('heard'); };
+  r.onerror=e=>s.textContent=e.error==='not-allowed'?T('deny'):T('micfail');
+  try{ r.start(); }catch(e){ s.textContent=T('micfail'); }
+}
+$('pin').value=pin; setLang(lang);
+setInterval(()=>{ if($('p_tech').style.display==='block'&&pin) load(); },30000);
+</script></body></html>
